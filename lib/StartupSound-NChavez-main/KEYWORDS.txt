@@ -1,0 +1,5 @@
+StartupSound	KEYWORD1
+tune1	KEYWORD2
+tune2	KEYWORD2
+tune3	KEYWORD2
+tune4	KEYWORD2

@@ -1,9 +1,22 @@
-#include <Arduino.h>
-#include <SoftwareSerial.h>
+
 /*
   Software for a simple rocket launch computer
   Nicholas Chavez 2025
 */
+
+
+//Public Libraries
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+
+//Personal Libraries
+#include <StartupSound.h>
+
+//local pin defines
+
+#define BUTTON_PIN 2
+#define BUZZER_PIN 3
+#define RELAY_PIN 4
 
 // These are the Arduino pins required to create a software seiral
 //  instance. We'll actually only use the TX pin.
@@ -12,11 +25,9 @@ const int softwareRx = 7;
 
 SoftwareSerial s7s(softwareRx, softwareTx);
 
-//local pin defines
+StartupSound buzzer(BUZZER_PIN,BUZZER_PIN,BUZZER_PIN);
 
-#define BUTTON_PIN 2
-#define BUZZER_PIN 3
-#define RELAY_PIN 4
+//function defines
 
 // Send the clear display command (0x76)
 //  This will clear the display and reset the cursor
@@ -56,6 +67,12 @@ void neutralDisplay()
   }
 }
 
+//global variables
+
+int i = 30;
+
+//setup
+
 void setup() {
   s7s.begin(9600);
   Serial.begin(9600);
@@ -65,6 +82,12 @@ void setup() {
   setBrightness(255);  // High brightness
 
   neutralDisplay();
+  buzzer.tune1();
+  delay(1000);
+  buzzer.tune3();
+  delay(1000);
+  buzzer.tune4();
+  delay(1000);
 
   //pinmodes
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -72,7 +95,7 @@ void setup() {
   digitalWrite(RELAY_PIN, LOW);
 }
 
-int i = 30;
+//loop
 
 void loop() {
   // put your main code here, to run repeatedly:
