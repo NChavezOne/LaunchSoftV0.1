@@ -69,6 +69,20 @@ void neutralDisplay()
     s7s.write(0b00101101); //central segment
   }
 }
+//go to the digit. 1 = furthest left digit
+void goToDigit(int digit) {
+  digit = digit - 1;
+  s7s.write(0x79);
+  s7s.write(digit);
+}
+void initDisplay() {
+  for (int i = 1; i < 5; i++) {
+    clearDisplay();
+    goToDigit(i);
+    s7s.write(0b00101101); //central segment
+    delay(200);
+  }
+}
 void soundBuzzer3() {
   tone(BUZZER_PIN_3, 1, 500);
 }
@@ -83,8 +97,7 @@ void setup() {
   //pinmodes
   
   pinMode(BUZZER_PIN_3, OUTPUT);
-  digitalWrite(BUZZER_PIN_3, HIGH);
-  
+  digitalWrite(BUZZER_PIN_3, LOW);
   
   s7s.begin(9600);
   Serial.begin(9600);
@@ -113,7 +126,8 @@ void setup() {
 
   delay(1000);
   buzzer.tune3();
-  delay(1000);
+  delay(800);
+  initDisplay();
   buzzer.tune4();
   delay(1000);
 
@@ -126,9 +140,17 @@ void setup() {
 //loop
 
 long int timeElapsedSinceLastLoop = 0;
+int previousMillis = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
+  unsigned long currentMillis = mills();
+  if (currentMillis - previousMillis >= interval) {
+    buzzer.tune4();
+    idleCounter = 0;
+  }
+  idleCounter++;
+  delay(1);
   if (digitalRead(BUTTON_PIN) == LOW) {
     Serial.println("Countdown buzzon pressed, launch sequence commencing.");
     delay(100);
