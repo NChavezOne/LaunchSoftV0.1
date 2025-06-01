@@ -15,6 +15,8 @@
 //local pin defines
 
 #define BUTTON_PIN 2
+#define ARMING_KEY A1 //Logic HIGH to arm (?)
+#define EXTERNAL_LAUNCH_BUTTON 11 //Logic HIGH to Launch
 
 #define BUZZER_PIN 5 //This is the main buzzer.
 //#define BUZZER_PIN_2 5
@@ -152,6 +154,8 @@ void setup() {
 
   //pinmodes
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(EXTERNAL_LAUNCH_BUTTON, INPUT_PULLUP);
+  pinMode(ARMING_KEY, INPUT);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
   
