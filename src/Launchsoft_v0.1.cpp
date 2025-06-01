@@ -16,20 +16,23 @@
 
 #define BUTTON_PIN 2
 
-#define BUZZER_PIN 3
-#define BUZZER_PIN_2 4
-#define BUZZER_PIN_3 5 //buzzer 3 is a passive buzzer that requires a logic low to sound
+#define BUZZER_PIN 5 //This is the main buzzer.
+//#define BUZZER_PIN_2 5
+#define BUZZER_PIN_3 6 //BUZZER_PIN_3 is a passive buzzer that requires a logic low to sound
 
-#define RELAY_PIN 4
+#define RELAY_PIN 7
 
 // These are the Arduino pins required to create a software seiral
 //  instance. We'll actually only use the TX pin.
 const int softwareTx = 8;
-const int softwareRx = 7;
+const int softwareRx = 9;
+
+#define LED_PIN 9
+
 
 SoftwareSerial s7s(softwareRx, softwareTx);
 
-StartupSound buzzer(BUZZER_PIN, BUZZER_PIN_2 ,BUZZER_PIN_3);
+StartupSound buzzer(BUZZER_PIN, LED_PIN, 5);
 
 //function defines
 
@@ -76,12 +79,20 @@ void goToDigit(int digit) {
   s7s.write(digit);
 }
 void initDisplay() {
-  for (int i = 1; i < 5; i++) {
-    clearDisplay();
-    goToDigit(i);
-    s7s.write(0b00101101); //central segment
-    delay(200);
+  for (int k = 0; k < 5; k++)  { 
+    for (int i = 1; i < 5; i++) {
+      clearDisplay();
+      goToDigit(i);
+      s7s.write(0b00101101); //central segment
+      delay(50);
+    }
   }
+}
+void displayCount(int count) {
+  if (count >= 10) {
+    goToDigit(3);
+  } else {goToDigit(4);}
+  s7s.print(count);
 }
 void soundBuzzer3() {
   tone(BUZZER_PIN_3, 1, 500);
@@ -89,7 +100,8 @@ void soundBuzzer3() {
 
 //global variables
 
-int countdown = 30;
+int countdown = 20;
+int currentMillis;
 
 //setup
 
@@ -97,8 +109,13 @@ void setup() {
   //pinmodes
   
   pinMode(BUZZER_PIN_3, OUTPUT);
-  digitalWrite(BUZZER_PIN_3, LOW);
+  digitalWrite(BUZZER_PIN_3, HIGH);
   
+  pinMode(LED_PIN, OUTPUT);
+  
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+
   s7s.begin(9600);
   Serial.begin(9600);
 
@@ -118,9 +135,8 @@ void setup() {
   
   bool allDevicesInitialized = true;
   if (allDevicesInitialized == true) {
-    Serial.println("Device successfully initialized.");
   } else {
-    buzzer.tune4();
+    buzzer.tune2();
     Serial.println("Device failed to initialized.");
   }
 
@@ -128,45 +144,86 @@ void setup() {
   buzzer.tune3();
   delay(800);
   initDisplay();
+  neutralDisplay();
+  Serial.println("Device successfully initialized.");
   buzzer.tune4();
+  Serial.println("Entering main program loop.");
   delay(1000);
 
   //pinmodes
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  
+  currentMillis = millis();
 }
 
 //loop
 
 long int timeElapsedSinceLastLoop = 0;
 int previousMillis = 0;
+const int interval = 2000;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  unsigned long currentMillis = mills();
+  currentMillis = millis();
+  digitalWrite(BUZZER_PIN_3, HIGH);
   if (currentMillis - previousMillis >= interval) {
-    buzzer.tune4();
-    idleCounter = 0;
+    buzzer.mainBuzz();
+    previousMillis = millis();
+    Serial.println("Device is idle, current time is " + millis());
   }
-  idleCounter++;
-  delay(1);
   if (digitalRead(BUTTON_PIN) == LOW) {
     Serial.println("Countdown buzzon pressed, launch sequence commencing.");
+    clearDisplay();
     delay(100);
     while (countdown >= 0) {
+      
+      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(BUZZER_PIN_3, LOW);
       timeElapsedSinceLastLoop = millis();
       clearDisplay();
-      s7s.print(countdown);
-      tone(BUZZER_PIN, 2000, 200);
-      soundBuzzer3();
+      displayCount(countdown);
+      
+      if (countdown >= 10) {
+        tone(BUZZER_PIN, 2000, 200);
+      }
+      
       if (countdown == 0) {
+        delay(500);
+
         digitalWrite(RELAY_PIN, HIGH);
+        digitalWrite(LED_PIN, HIGH);
+
         tone(BUZZER_PIN, 2000);
+        delay(2000);
+        noTone(BUZZER_PIN);
+
+        digitalWrite(RELAY_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+        digitalWrite(BUZZER_PIN_3, HIGH); //Turning off the passive buzzer by writing a lgic HIGH to it.
+        delay(2000);
         while(1) {}
       }
+
+
+      digitalWrite(LED_PIN, LOW);
+
       countdown--;
-      while (millis() - timeElapsedSinceLastLoop <= 1000) {}
+      
+      int rapidBuzz = millis();
+      int rapidBuzzCount = 0;
+      const int rapidBuzzInterval = 150;
+      while (millis() - timeElapsedSinceLastLoop <= 1000) {
+        if (millis() - timeElapsedSinceLastLoop >= 800) {
+          digitalWrite(BUZZER_PIN_3, HIGH);
+        }
+        if (countdown < 10 && millis() - rapidBuzz >= rapidBuzzInterval && rapidBuzzCount <= 3) {
+          tone(BUZZER_PIN, 2000, 100);
+          rapidBuzz = millis();
+          rapidBuzzCount++;
+        }
+      }
     } 
   }
 }
